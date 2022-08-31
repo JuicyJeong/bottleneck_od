@@ -2,14 +2,10 @@ import sys
 
 
 
-'''
-pt 0 
-데이터 불러오기, 데이터 타입 초기화
-'''
+
 #텍스트파일 경로 항상 확인.
 # f = open("C:/Users/jinwoo Jeong/Desktop/ML/yolov4-deepsort-master/output.txt", 'r')
 f = open("output.txt", 'r')
-
 
 #프레임 넘버 카운터. 1부터 시작
 frame_count_num = 1
@@ -56,6 +52,7 @@ f3_que_max = 15
 pt 0 
 데이터 불러오기, 데이터 타입 초기화
 '''
+
 
 
 '''
