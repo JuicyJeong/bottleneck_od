@@ -2,6 +2,10 @@ import sys
 from PyQt5.QtWidgets import *
 from PyQt5 import uic
 import datetime
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+
 #UI파일 연결
 #단, UI파일은 Python 코드 파일과 같은 디렉토리에 위치해야한다.
 form_class = uic.loadUiType("untitled.ui")[0]
@@ -31,15 +35,15 @@ class WindowClass(QMainWindow, form_class) :
 
 
     # 공정 좌표를 미리 정의. 좌표는 직접 확인하는게 좋으며 이때는 일단 작동하는지 확인을 위해 임시로 해보겠음.
-    f1_xmin = 0
-    f1_ymin = 0
-    f1_xmax = 1920
-    f1_ymax = 1080
+    f1_xmin = 430
+    f1_ymin = 320
+    f1_xmax = 1310
+    f1_ymax = 530
 
-    f2_xmin = 0
-    f2_ymin = 0
-    f2_xmax = 1920
-    f2_ymax = 1080
+    f2_xmin = 1310
+    f2_ymin = 1039
+    f2_xmax = 2295
+    f2_ymax = 1635
 
     f3_xmin = 0
     f3_ymin = 0
@@ -48,12 +52,15 @@ class WindowClass(QMainWindow, form_class) :
 
     # 공정 좌표를 미리 정의. 좌표는 직접 확인하는게 좋으며 이때는 일단 작동하는지 확인을 위해 임시로 해보겠음.
 
-    f1_que_max = 4
-    f2_que_max = 4
+    f1_que_max = 10
+    f2_que_max = 5
     f3_que_max = 4
 
     #불러올 텍스트 파일 변수 선언
     txtfile = None
+
+    # 영상이 몇초인지 출력하는 변수
+    video_sec = 0
 
     #이용률 시스템 메세지 선언
     lambda_sys_message = "[00:00:00]: 시스템을 시작합니다.\n"
@@ -63,6 +70,9 @@ class WindowClass(QMainWindow, form_class) :
 
     #타이머 시간 입력하여 유틸, 용적률 출력하게 할때 쓰는 시간 변수
     time_text = '000000'
+
+    fig = plt.Figure()
+    canvas = FigureCanvas(fig)
 
     def __init__(self) :
         super().__init__()
@@ -75,7 +85,7 @@ class WindowClass(QMainWindow, form_class) :
         self.file_pushButton_5min.clicked.connect(self.onclick_5min)
         self.file_pushButton_10min.clicked.connect(self.onclick_10min)
         self.time_text = self.timer_input.text()
-
+        self.verticalLayout_right.addWidget(self.canvas)
     #
     def onchange_file(self):
         '''
@@ -123,8 +133,8 @@ class WindowClass(QMainWindow, form_class) :
                     self.factory_status[1] += 1
 
                     # 공정2 위치에 오브젝트가 잡힐때:
-                # elif self.f2_xmin < xmin and self.f2_ymin < ymin and self.f2_xmax > xmax and self.f2_ymax > ymax :
-                # factory_status[2] += 1
+                elif self.f2_xmin < xmin and self.f2_ymin < ymin and self.f2_xmax > xmax and self.f2_ymax > ymax :
+                    self.factory_status[2] += 1
 
                 # 공정3 위치에 오브젝트가 잡힐때:
                 # elif self.f3_xmin < xmin and self.f3_ymin < ymin and self.f3_xmax > xmax and self.f3_ymax > ymax :
@@ -152,15 +162,15 @@ class WindowClass(QMainWindow, form_class) :
         1초당 프레임이 몇이었는지, 것들을 계산해서 입력해야함.
         '''
         frame_per_second = 30  # fps 값 임시로 설정.
-        video_sec = len(self.final_list) // frame_per_second
-        total_frame = video_sec * frame_per_second  # 끝에 1초미만의 영상의 프레임을 떨구는 것으로 결정.
+        self.video_sec = len(self.final_list) // frame_per_second
+        total_frame = self.video_sec * frame_per_second  # 끝에 1초미만의 영상의 프레임을 떨구는 것으로 결정.
 
-        print('영상길이:{}초'.format(video_sec))
+        print('영상길이:{}초'.format(self.video_sec))
         print('Frame Per Second: {}'.format(frame_per_second))
         print('총 프레임 수: {}'.format(total_frame))
 
         # 프레임별로 탐지된 오브젝트 수를 초 단위로 변환하여 초당 탐지된 오브젝트 수들을 출력(반올림)
-        for sec_num in range(0, video_sec):
+        for sec_num in range(0, self.video_sec):
             # 공정 갯수만큼 초기화시키기
             sum_fac0 = 0
             sum_fac1 = 0
@@ -179,11 +189,11 @@ class WindowClass(QMainWindow, form_class) :
             sum_fac3 = round(sum_fac3 / frame_per_second)
             sum_fac0 = round(sum_fac0 / frame_per_second)
 
-            # print('1공정:{},'
-            #       '\n2공정:{},'
-            #       '\n3공정:{},'
-            #       '\n그 외:{}'
-            #       .format(sum_fac1, sum_fac2, sum_fac3, sum_fac0))
+            print('1공정:{},'
+                  '\n2공정:{},'
+                  '\n3공정:{},'
+                  '\n그 외:{}'
+                  .format(sum_fac1, sum_fac2, sum_fac3, sum_fac0))
             self.count_by_sec.append([sum_fac0,sum_fac1,sum_fac2,sum_fac3])
         # print(self.count_by_sec)
 
@@ -198,58 +208,92 @@ class WindowClass(QMainWindow, form_class) :
         self.od_sys_message = "[00:00:00]: 시스템을 시작합니다.\n"
         min = 2 #임시 선언 숫자. 나중에 초로 나누자.
         min_counter = 0
+        ######## 단위시간 별로 끊은 초의 오브젝트 값을 리스트로 갖고 있는 변수 ##########
+        obj_num1 = []
+        obj_num2 = []
+        obj_num3 = []
+
         while  min_counter < len(self.count_by_sec):
             count_time = str(datetime.timedelta(seconds=min_counter))
             area_1 = self.count_by_sec[min_counter][1]/self.f1_que_max
             area_2 = self.count_by_sec[min_counter][2]/self.f2_que_max
             area_3 = self.count_by_sec[min_counter][3]/self.f3_que_max
 
+
+            obj_num1.append(area_1)
+            obj_num2.append(area_2)
+            obj_num3.append(area_3)
+
             #### juicy: 여기 퍼센테이지 용적률을 각각 바꿔야함.###
             if area_1 > 0.5:
                 self.od_sys_message =self.od_sys_message + "[{}]: 현재 공정 1이 용적률 {}%를 넘어섰습니다.\n".format(count_time,area_1*100)
                 # print("현재 공정 1이 용적률 {}%를 넘어섰습니다.".format(area_1*100))
             if area_2 >0.5:
-                self.od_sys_message = self.od_sys_message + "[{}]: 현재 공정 1이 용적률 {}%를 넘어섰습니다.\n".format(count_time,area_2*100)
+                self.od_sys_message = self.od_sys_message + "[{}]: 현재 공정 2이 용적률 {}%를 넘어섰습니다.\n".format(count_time,area_2*100)
 
             if area_3 > 0.5:
-                self.od_sys_message = self.od_sys_message + "[{}]: 현재 공정 1이 용적률 {}%를 넘어섰습니다.\n".format(count_time,area_3*100)
+                self.od_sys_message = self.od_sys_message + "[{}]: 현재 공정 3이 용적률 {}%를 넘어섰습니다.\n".format(count_time,area_3*100)
             min_counter += min
+
         self.onchange_sys_message_right(self.od_sys_message)
+
+        divide_by_min = list(range(0, self.video_sec,min))
+
+        self.draw_right_graph(divide_by_min, obj_num1, obj_num2, obj_num3)
 
     def onclick_2min(self):
         self.od_sys_message = "[00:00:00]: 시스템을 시작합니다.\n"
         min = 5  # 임시 선언 숫자. 나중에 초로 나누자.
         min_counter = 0
+        obj_num1 = []
+        obj_num2 = []
+        obj_num3 = []
+
         while min_counter < len(self.count_by_sec):
             count_time = str(datetime.timedelta(seconds=min_counter))
             area_1 = self.count_by_sec[min_counter][1] / self.f1_que_max
             area_2 = self.count_by_sec[min_counter][2] / self.f2_que_max
             area_3 = self.count_by_sec[min_counter][3] / self.f3_que_max
 
+            obj_num1.append(area_1)
+            obj_num2.append(area_2)
+            obj_num3.append(area_3)
             #### juicy: 여기 퍼센테이지 용적률을 각각 바꿔야함.###
             if area_1 > 0.5:
                 self.od_sys_message = self.od_sys_message + "[{}]: 현재 공정 1이 용적률 {}%를 넘어섰습니다.\n".format(count_time,
                                                                                                        area_1 * 100)
                 # print("현재 공정 1이 용적률 {}%를 넘어섰습니다.".format(area_1*100))
             if area_2 > 0.5:
-                self.od_sys_message = self.od_sys_message + "[{}]: 현재 공정 1이 용적률 {}%를 넘어섰습니다.\n".format(count_time,
+                self.od_sys_message = self.od_sys_message + "[{}]: 현재 공정 2이 용적률 {}%를 넘어섰습니다.\n".format(count_time,
                                                                                                        area_2 * 100)
 
             if area_3 > 0.5:
-                self.od_sys_message = self.od_sys_message + "[{}]: 현재 공정 1이 용적률 {}%를 넘어섰습니다.\n".format(count_time,
+                self.od_sys_message = self.od_sys_message + "[{}]: 현재 공정 3이 용적률 {}%를 넘어섰습니다.\n".format(count_time,
                                                                                                        area_3 * 100)
             min_counter += min
         self.onchange_sys_message_right(self.od_sys_message)
+
+        divide_by_min = list(range(0, self.video_sec, min))
+
+        self.draw_right_graph(divide_by_min, obj_num1, obj_num2, obj_num3)
 
     def onclick_5min(self):
         self.od_sys_message = "[00:00:00]: 시스템을 시작합니다.\n"
         min = 10  # 임시 선언 숫자. 나중에 초로 나누자.
         min_counter = 0
+        obj_num1 = []
+        obj_num2 = []
+        obj_num3 = []
+
         while min_counter < len(self.count_by_sec):
             count_time = str(datetime.timedelta(seconds=min_counter))
             area_1 = self.count_by_sec[min_counter][1] / self.f1_que_max
             area_2 = self.count_by_sec[min_counter][2] / self.f2_que_max
             area_3 = self.count_by_sec[min_counter][3] / self.f3_que_max
+
+            obj_num1.append(area_1)
+            obj_num2.append(area_2)
+            obj_num3.append(area_3)
 
             #### juicy: 여기 퍼센테이지 용적률을 각각 바꿔야함.###
             if area_1 > 0.5:
@@ -257,23 +301,36 @@ class WindowClass(QMainWindow, form_class) :
                                                                                                        area_1 * 100)
                 # print("현재 공정 1이 용적률 {}%를 넘어섰습니다.".format(area_1*100))
             if area_2 > 0.5:
-                self.od_sys_message = self.od_sys_message + "[{}]: 현재 공정 1이 용적률 {}%를 넘어섰습니다.\n".format(count_time,
+                self.od_sys_message = self.od_sys_message + "[{}]: 현재 공정 2이 용적률 {}%를 넘어섰습니다.\n".format(count_time,
                                                                                                        area_2 * 100)
 
             if area_3 > 0.5:
-                self.od_sys_message = self.od_sys_message + "[{}]: 현재 공정 1이 용적률 {}%를 넘어섰습니다.\n".format(count_time,
+                self.od_sys_message = self.od_sys_message + "[{}]: 현재 공정 3이 용적률 {}%를 넘어섰습니다.\n".format(count_time,
                                                                                                        area_3 * 100)
             min_counter += min
         self.onchange_sys_message_right(self.od_sys_message)
+
+        divide_by_min = list(range(0, self.video_sec, min))
+
+        self.draw_right_graph(divide_by_min, obj_num1, obj_num2, obj_num3)
+
+
 
     def onclick_10min(self):
         min = 10  # 임시 선언 숫자. 나중에 초로 나누자.
         min_counter = 0
+        obj_num1 = []
+        obj_num2 = []
+        obj_num3 = []
         while min_counter < len(self.count_by_sec):
             count_time = str(datetime.timedelta(seconds=min_counter))
             area_1 = self.count_by_sec[min_counter][1] / self.f1_que_max
             area_2 = self.count_by_sec[min_counter][2] / self.f2_que_max
             area_3 = self.count_by_sec[min_counter][3] / self.f3_que_max
+
+            obj_num1.append(area_1)
+            obj_num2.append(area_2)
+            obj_num3.append(area_3)
 
             #### juicy: 여기 퍼센테이지 용적률을 각각 바꿔야함.###
             if area_1 > 0.5:
@@ -289,6 +346,11 @@ class WindowClass(QMainWindow, form_class) :
                                                                                                        area_3 * 100)
             min_counter += min
         self.onchange_sys_message_right(self.od_sys_message)
+
+        divide_by_min = list(range(0, self.video_sec, min))
+
+        self.draw_right_graph(divide_by_min, obj_num1, obj_num2, obj_num3)
+
 
     def onchange_sys_message_right(self,sys_message):
         self.plainTextEdit_od.setPlainText(sys_message)
@@ -342,6 +404,32 @@ class WindowClass(QMainWindow, form_class) :
 
         label.setText(str(value))
 
+    def draw_right_graph(self, divide_by_min, obj_num1, obj_num2, obj_num3):
+
+        ax = self.fig.clear() #이전 그래프 한번 초기화
+
+
+        ax = self.fig.add_subplot(131)
+        ax.plot(divide_by_min, obj_num1)
+        ax.set_xlabel("time")
+        # ax.set_ylabel("per")
+
+        ax = self.fig.add_subplot(132)
+        ax.plot(divide_by_min, obj_num2)
+        # ax.yaxis.set_visible(False) # 축 정보를 비활성화. 그래프 미관에 방해되서.
+        # ax.set_ylabel("per")
+
+        ax = self.fig.add_subplot(133)
+        ax.plot(divide_by_min, obj_num3)
+        ax.yaxis.set_visible(False)# 축 정보를 비활성화. 그래프 미관에 방해되서.
+        # ax.set_xlabel("time")
+
+        # ax.legend()
+        self.canvas.draw()
+
+
+    def onchange_left_graph(self):
+        pass
 
 
 if __name__ == "__main__" :
