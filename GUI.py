@@ -40,19 +40,25 @@ class WindowClass(QMainWindow, form_class) :
     f1_xmax = 1310
     f1_ymax = 530
 
+    #n번위치~ 1번위치 순으로 입력.(역으로 입력하기)
+    f1_count_pos = [[856,563,973,733],[938,568,1056,739],[1025,573,1142,743],[1107,583,1222,754],[1190,588,1306,761][1277,595,1393,763],[1352,601,1470,771]]
+
+
     f2_xmin = 1310
     f2_ymin = 1039
     f2_xmax = 2295
     f2_ymax = 1635
+    f2_count_pos = {}
 
     f3_xmin = 0
     f3_ymin = 0
     f3_xmax = 1920
     f3_ymax = 1080
+    f3_count_pos = {}
 
     # 공정 좌표를 미리 정의. 좌표는 직접 확인하는게 좋으며 이때는 일단 작동하는지 확인을 위해 임시로 해보겠음.
 
-    f1_que_max = 10
+    f1_que_max = 7
     f2_que_max = 5
     f3_que_max = 4
 
@@ -86,7 +92,27 @@ class WindowClass(QMainWindow, form_class) :
         self.file_pushButton_10min.clicked.connect(self.onclick_10min)
         self.time_text = self.timer_input.text()
         self.verticalLayout_right.addWidget(self.canvas)
-    #
+
+    # 위치 포지션에 따라 몇번째 위치에 있는지 확인하는 함수
+    def object_detection(self,xmin,ymin,xmax,ymax):
+        count = 0
+        obj_num = self.f1_que_max
+        #1공정에 있는게 확인 되었을때
+        if self.f1_xmin < xmin and self.f1_ymin < ymin and self.f1_xmax > xmax and self.f1_ymax > ymax:
+            while self.f1_count_pos[count][0] < xmin and self.f1_count_pos[count][1] < ymin and self.f1_count_pos[count][2] > xmax and self.f1_count_pos[count][3] > ymax:
+                count +=1
+                obj_num -=1
+                if obj_num ==0:
+                    break
+        else:
+            pass
+        return (obj_num)
+
+
+
+
+
+        pass
     def onchange_file(self):
         '''
         파일 호출 후, 프레임당 잡히는 오브젝트들을 초로 변환하여 1초당 몇개의 오브젝트가 탐지되는지
@@ -196,6 +222,8 @@ class WindowClass(QMainWindow, form_class) :
                   .format(sum_fac1, sum_fac2, sum_fac3, sum_fac0))
             self.count_by_sec.append([sum_fac0,sum_fac1,sum_fac2,sum_fac3])
         # print(self.count_by_sec)
+
+        self.txtfile = None # 텍스트 파일 초기화.
 
 
     def onclick_1min(self):
@@ -314,8 +342,6 @@ class WindowClass(QMainWindow, form_class) :
 
         self.draw_right_graph(divide_by_min, obj_num1, obj_num2, obj_num3)
 
-
-
     def onclick_10min(self):
         min = 10  # 임시 선언 숫자. 나중에 초로 나누자.
         min_counter = 0
@@ -412,11 +438,13 @@ class WindowClass(QMainWindow, form_class) :
         ax = self.fig.add_subplot(131)
         ax.plot(divide_by_min, obj_num1)
         ax.set_xlabel("time")
+        # ax[0].xlim(0,10)
         # ax.set_ylabel("per")
+        print(type(ax))
 
         ax = self.fig.add_subplot(132)
         ax.plot(divide_by_min, obj_num2)
-        # ax.yaxis.set_visible(False) # 축 정보를 비활성화. 그래프 미관에 방해되서.
+        ax.yaxis.set_visible(False) # 축 정보를 비활성화. 그래프 미관에 방해되서.
         # ax.set_ylabel("per")
 
         ax = self.fig.add_subplot(133)
