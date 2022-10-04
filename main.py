@@ -1,11 +1,11 @@
 import sys
-
+import pandas as pd
 
 
 
 #텍스트파일 경로 항상 확인.
-# f = open("C:/Users/jinwoo Jeong/Desktop/ML/yolov4-deepsort-master/output.txt", 'r')
-f = open("output.txt", 'r')
+f = open("C:/Users/jinwoo Jeong/Desktop/ML/yolov4-deepsort-master/output0920.txt", 'r')
+# f = open("output.txt", 'r')
 
 #프레임 넘버 카운터. 1부터 시작
 frame_count_num = 1
@@ -26,27 +26,29 @@ que2_max = 10
 que3_max = 10
 
 #공정 좌표를 미리 정의. 좌표는 직접 확인하는게 좋으며 이때는 일단 작동하는지 확인을 위해 임시로 해보겠음.
-f1_xmin = 0
-f1_ymin = 0
-f1_xmax = 1920
-f1_ymax = 1080
+f1_xmin = 402
+f1_ymin = 75
+f1_xmax = 1600
+f1_ymax = 800
 
 f2_xmin = 0
-f2_ymin = 0
-f2_xmax = 1920
-f2_ymax = 1080
+f2_ymin = 1392
+f2_xmax = 1500
+f2_ymax = 2028
 
-f3_xmin = 0
-f3_ymin = 0
-f3_xmax = 1920
-f3_ymax = 1080
+f3_xmin = 380
+f3_ymin = 2378
+f3_xmax = 1566
+f3_ymax = 2849
 
 #공정 좌표를 미리 정의. 좌표는 직접 확인하는게 좋으며 이때는 일단 작동하는지 확인을 위해 임시로 해보겠음.
 
 
-f1_que_max = 10
-f2_que_max = 12
-f3_que_max = 15
+f1_que_max = 3
+f2_que_max = 8
+f3_que_max = 5
+
+
 
 '''
 pt 0 
@@ -70,6 +72,9 @@ while True:
 ## 프레임 번호를 ID 키값으로
     #프레임 번호가 라인에 있을 때: 프레임 번호를 출력
     if 'Frame' in line:
+        f1_pos = []
+        f2_pos = []
+        f3_pos = []
         frame_dict = 'Frame_{}'.format(frame_count_num)
         frame_count_num += 1
         # print(frame_dict)
@@ -90,19 +95,18 @@ while True:
         xmax =int(pos[2])
         ymax =int(pos[3])
 
-
         ###### 공정 bbox 위치 선언 구간####
             #공정1 위치에 오브젝츠가 잡힐때
         if f1_xmin < xmin and f1_ymin < ymin and f1_xmax > xmax and f1_ymax > ymax :
             factory_status[1] += 1
 
             # 공정2 위치에 오브젝트가 잡힐때:
-        #elif f2_xmin < xmin and f2_ymin < ymin and f2_xmax > xmax and f2_ymax > ymax :
-            #factory_status[2] += 1
+        elif f2_xmin < xmin and f2_ymin < ymin and f2_xmax > xmax and f2_ymax > ymax :
+            factory_status[2] += 1
 
             # 공정3 위치에 오브젝트가 잡힐때:
-        # elif f3_xmin < xmin and f3_ymin < ymin and f2_xmax > xmax and f2_ymax > ymax :
-            # factory_status[3] += 1
+        elif f3_xmin < xmin and f3_ymin < ymin and f2_xmax > xmax and f2_ymax > ymax :
+            factory_status[3] += 1
 
 
         else: #fps 나오고 해당 프레임의 마지막 라인인것을 아니 여기서 선언하고 한번에 입력하면 될듯?
@@ -112,8 +116,10 @@ while True:
 
 
     elif 'FPS' in line: #FPS 라인 읽을때. 해당 프레임의 끝 임을 이용하여 리스트 초기화
+
         final_list.append(factory_status)   #여기를 제일 아래단으로?
         factory_status = [0, 0, 0, 0] #다시 초기화...
+
         # print(tracker_ID)
         # print(xmin,ymin,xmax,ymax)
 
@@ -126,6 +132,8 @@ pt1
 윗 부분까지 프레임 별로 어느 공정에 있는지 딕셔너리로 추가 완료. 이제 몇초동안 어디에 있었는지, 
 1초당 프레임이 몇이었는지, 것들을 계산해서 입력해야함.
 '''
+output = pd.DataFrame(columns = ['Time','Que1','Que2','Que3'])
+
 
 frame_per_second = 30 #fps 값 임시로 설정.
 video_sec = len(final_list)//frame_per_second
@@ -162,6 +170,8 @@ for sec_num in range(1,video_sec+1):
           '\n3공정:{},'
           '\n그 외:{}'
           .format(sum_fac1,sum_fac2,sum_fac3, sum_fac0))
+    output = output.append({'Time':sec_num,'Que1':sum_fac1,'Que2':sum_fac2,'Que3':sum_fac3},ignore_index=True)
+
 
 
 
@@ -173,3 +183,8 @@ for sec_num in range(1,video_sec+1):
 pt2 초당 어느 공정에 몇개의 오브젝트가 있는지 출력. 이걸... gui로 나타낼 수 있나? 아니면 어떤 방식으로...?
 '''
 import GUI
+'''
+pt3 보고서 형식으로 나타내기
+'''
+print(output)
+output.to_csv('final.csv')
